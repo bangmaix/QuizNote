@@ -1,0 +1,67 @@
+server {
+    listen 80;
+    server_name quiznote.com www.quiznote.com;  # Ganti dengan domain Anda
+    root /var/www/quiznote/public;
+    index index.php;
+
+    # Logging
+    access_log /var/log/nginx/quiznote_access.log;
+    error_log /var/log/nginx/quiznote_error.log;
+
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+
+    # Gzip compression
+    gzip on;
+    gzip_types text/plain text/css text/javascript application/json;
+
+    # Route all requests through index.php
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    # PHP processing
+    location ~ \.php$ {
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+        fastcgi_pass 127.0.0.1:9000;  # atau unix:/run/php-fpm/php-fpm.sock
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+
+    # Deny direct access to sensitive files
+    location ~ /\.env {
+        deny all;
+    }
+    location ~ /\.git {
+        deny all;
+    }
+
+    # Static assets caching
+    location ~* \.(jpg|jpeg|png|gif|ico|css|js|svg|woff|woff2|ttf|eot)$ {
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+}
+
+# Redirect HTTP to HTTPS (uncomment after SSL setup)
+# server {
+#     listen 80;
+#     server_name quiznote.com www.quiznote.com;
+#     return 301 https://$server_name$request_uri;
+# }
+
+# HTTPS Configuration (after Let's Encrypt setup)
+# server {
+#     listen 443 ssl http2;
+#     server_name quiznote.com www.quiznote.com;
+#     root /var/www/quiznote/public;
+#     index index.php;
+#
+#     ssl_certificate /etc/letsencrypt/live/quiznote.com/fullchain.pem;
+#     ssl_certificate_key /etc/letsencrypt/live/quiznote.com/privkey.pem;
+#
+#     # ... rest of config as above ...
+# }
